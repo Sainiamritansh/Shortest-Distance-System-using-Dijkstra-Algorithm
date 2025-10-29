@@ -6,43 +6,53 @@ import math
 import json
 import streamlit.components.v1 as components
 
+
 components.html("""
 <script>
 let watchId;
 
-function startTracking() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      function(position) {
-        console.log("Initial position:", position.coords.latitude, position.coords.longitude);
-      },
-      function(error) {
-        console.error("Error getting initial position:", error);
-      },
-      { enableHighAccuracy: true }
-    );
-
-    watchId = navigator.geolocation.watchPosition(
-      function(position) {
-        window.parent.postMessage({
-          type: 'location_update',
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        }, '*');
-      },
-      function(error) {
-        console.error("Error watching position:", error);
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-    );
-  } else {
-    alert("Geolocation is not supported by this browser.");
-  }
+function sendPosition(lat, lon) {
+  window.parent.postMessage(
+    { type: 'location_update', latitude: lat, longitude: lon },
+    '*'
+  );
 }
 
-window.addEventListener("load", startTracking);
+function startTracking() {
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported by your browser.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      console.log("Initial position:", pos.coords.latitude, pos.coords.longitude);
+      sendPosition(pos.coords.latitude, pos.coords.longitude);
+    },
+    (err) => {
+      console.error("Error getting position:", err);
+      alert("Please enable GPS or Location permission and refresh.");
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+
+  watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      sendPosition(pos.coords.latitude, pos.coords.longitude);
+    },
+    (err) => {
+      console.error("Error watching position:", err);
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+  );
+}
+
+window.addEventListener("load", () => {
+  startTracking();
+});
 </script>
 """, height=0)
+
 
 # -------------------------
 # Helpers
@@ -255,4 +265,5 @@ with st.expander("Tracking details"):
         st.write("Last position:", st.session_state.positions[-1])
 
 st.write("Tip: For best results open this page on your phone, grant location permissions, and keep the browser active in foreground. On desktop GPS accuracy will often be low; mobile gives accurate results.")
+
 
