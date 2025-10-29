@@ -1,5 +1,6 @@
 streamlit
+streamlit-folium
 folium
 geopy
-requests
-openrouteservice
+pandas
+numpy
